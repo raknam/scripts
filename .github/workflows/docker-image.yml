@@ -22,4 +22,4 @@ jobs:
         file: code-server.Dockerfile
         context: .
         push: true
-        tags: code-server:latest
+        tags: code-server-php-npm-clasp:latest
