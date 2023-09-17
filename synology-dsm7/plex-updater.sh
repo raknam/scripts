@@ -7,28 +7,27 @@
 # @author @martinorob https://github.com/martinorob
 # https://github.com/martinorob/plexupdate/
 
-PKG_NAME=PlexMediaServer
+PLEX_PKG_NAME=PlexMediaServer
 
 mkdir -p /tmp/plex/ > /dev/null 2>&1
-token=$(cat /volume1/PlexMediaServer/AppData/Plex\ Media\ Server/Preferences.xml | grep -oP 'PlexOnlineToken="\K[^"]+')
-url=$(echo "https://plex.tv/api/downloads/5.json?channel=plexpass&X-Plex-Token=$token")
-jq=$(curl -s ${url})
-newversion=$(echo $jq | jq -r .nas.Synology.version | awk -F- '{print $1}')
-echo New Ver: $newversion
-curversion=$(synopkg version $PKG_NAME | awk -F- '{print $1}')
-echo Cur Ver: $curversion
-if [ "$newversion" != "$curversion" ]
+PLEX_TOKEN=$(cat /volume4/PlexMediaServer/AppData/Plex\ Media\ Server/Preferences.xml | grep -oP 'PlexOnlineToken="\K[^"]+')
+PLEX_URL=$(echo "https://plex.tv/api/downloads/5.json?channel=plexpass&X-Plex-Token=$PLEX_TOKEN")
+PLEX_JSON=$(curl -s "$PLEX_URL")
+PLEX_NEW_VER=$(echo "$PLEX_JSON" | jq -r .nas.Synology.version | awk -F- '{print $1}')
+echo "New Ver: $PLEX_NEW_VER"
+PLEX_CUR_VER=$(synopkg version $PLEX_PKG_NAME| awk -F- '{print $1}')
+echo "Cur Ver: $PLEX_CUR_VER"
+if [ "$PLEX_NEW_VER" != "$PLEX_CUR_VER" ]
 then
-	echo New Vers Available
-	/usr/syno/bin/synonotify PKGHasUpgrade '{"[%HOSTNAME%]": $(hostname), "[%OSNAME%]": "Synology", "[%PKG_HAS_UPDATE%]": "Plex", "[%COMPANY_NAME%]": "Synology"}'
-	CPU=$(uname -m)
-	url=$(echo "${jq}" | jq -r '.nas."Synology (DSM 7)".releases[] | select(.build=="linux-'"${CPU}"'") | .url')
-	/bin/wget -q $url -P /tmp/plex/
+	echo "New Version Available"
+	PLEX_CPU=$(uname -m)
+	PLEX_PKG_URL=$(echo "$PLEX_JSON" | jq -r '.nas."Synology (DSM 7)".releases[] | select(.build=="linux-'"$PLEX_CPU"'") | .url')
+	/bin/wget -q $PLEX_PKG_URL -P /tmp/plex/
 	/usr/syno/bin/synopkg install /tmp/plex/*.spk
 	sleep 30
-	/usr/syno/bin/synopkg start $PKG_NAME
+	/usr/syno/bin/synopkg start $PLEX_PKG_NAME
 	rm -rf /tmp/plex/*
 else
-	echo No New Ver
+	echo "No New Version"
 fi
 exit
